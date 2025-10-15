@@ -1,0 +1,45 @@
+# Mobile & TV Apps
+mobile_tv:
+  # - name: "XTOR Player"
+  #   icon: "📱"
+  #   platform: "Android 5.0+"
+  #   description: "Official XTOR client for Android devices with full feature support including search, filtering, and quality selection."
+  #   download_link: "#"
+  #   info_link: "#"
+  #   placeholder: false
+
+# Desktop & Web Apps
+desktop_web:
+  - name: "XTOR Web Player"
+    icon: "🌐"
+    platform: "Web Browser (Chrome, Firefox, Safari)"
+    description: "Browser-based XTOR player that works on any device. No installation required."
+    download_link: "https://play.xtor.io"
+    info_link: "https://play.xtor.io"
+    placeholder: false
+
+# Developer Tools
+developer_tools:
+  # - name: "xtor.js"
+  #   icon: "📦"
+  #   platform: "JavaScript/TypeScript Library"
+  #   description: "Official JavaScript library for consuming XTOR feeds. Works in browser and Node.js."
+  #   download_link: "#"
+  #   info_link: "#"
+  #   placeholder: true
+
+  # - name: "xtor-python"
+  #   icon: "🐍"
+  #   platform: "Python Library"
+  #   description: "Python library for consuming and creating XTOR feeds. Perfect for server-side applications."
+  #   download_link: "#"
+  #   info_link: "#"
+  #   placeholder: true
+
+  # - name: "XTOR API Tester"
+  #   icon: "🧪"
+  #   platform: "Web-based Tool"
+  #   description: "Interactive tool for testing and validating XTOR feed implementations."
+  #   download_link: "/testing/"
+  #   info_link: "/testing/"
+  #   placeholder: false

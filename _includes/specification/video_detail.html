@@ -1,0 +1,239 @@
+<div class="spec-section" id="video-detail">
+    <h2>3. Video Detail Endpoint</h2>
+    <p><code>GET /videos/:id</code></p>
+    <p>Returns complete details for a single video, including all available playback formats and full metadata.</p>
+
+    <div class="warning-box">
+        <strong>CRITICAL REQUIREMENT:</strong> All videos MUST have at least one playable format. The <code>formats</code> array MUST be present and non-empty in this response. This is the only place where formats are required to be returned.
+    </div>
+
+    <h3>URL Parameters</h3>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>:id</code></td>
+                <td>string</td>
+                <td>The unique video identifier from the <code>/videos</code> endpoint</td>
+                <td><code>/videos/mv001</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Response Format</h3>
+    <div class="code-example">
+        <div class="code-header">Response Structure</div>
+        <pre><code>{
+  "id": string,              // Required: Unique identifier
+  "title": string,           // Required: Video title
+  "description": string,     // Optional: Full video description
+  "thumbnail": string,       // Required: Thumbnail image URL
+  "source_url": string,      // Optional: Original content URL
+  "duration": integer|null,  // Optional: Duration in seconds (null = live)
+  "published_at": string,    // Optional: ISO 8601 timestamp
+  "formats": [               // Required: Must have at least one format
+    {
+      "quality": integer|null, // Height in pixels or null
+      "url": string            // Required: Direct playback URL
+    }
+  ]
+}</code></pre>
+    </div>
+
+    <h3>Response Fields</h3>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>id</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Unique video identifier. Must match the requested ID.</td>
+            </tr>
+            <tr>
+                <td><code>title</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Video title. Displayed in player and listings.</td>
+            </tr>
+            <tr>
+                <td><code>thumbnail</code></td>
+                <td>string (URL)</td>
+                <td>✅ Yes</td>
+                <td>Absolute URL to thumbnail. Should be at least 320x180px.</td>
+            </tr>
+            <tr>
+                <td><code>formats</code></td>
+                <td>array</td>
+                <td>✅ Yes</td>
+                <td><strong>Required and must be non-empty.</strong> Array of playback formats with quality options. Every XTOR video must be playable.</td>
+            </tr>
+            <tr>
+                <td><code>description</code></td>
+                <td>string</td>
+                <td>❌ No</td>
+                <td>Full video description with details, context, or credits. Can be multiple paragraphs. Supports plain text.</td>
+            </tr>
+            <tr>
+                <td><code>source_url</code></td>
+                <td>string (URL)</td>
+                <td>❌ No</td>
+                <td>Link to original source (YouTube, Vimeo, etc.). Used for "Watch Original" buttons and attribution.</td>
+            </tr>
+            <tr>
+                <td><code>duration</code></td>
+                <td>integer or null</td>
+                <td>❌ No</td>
+                <td>Duration in seconds. Use <code>null</code> for live streams. Used for progress bars and time displays.</td>
+            </tr>
+            <tr>
+                <td><code>published_at</code></td>
+                <td>string (ISO 8601)</td>
+                <td>❌ No</td>
+                <td>Publication timestamp in ISO 8601 format (e.g., "2025-01-15T20:30:00Z"). Used for "published N days ago" displays.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Formats Array Structure</h3>
+    <p><strong>This field is REQUIRED and must contain at least one format.</strong> Each format object provides a playback URL and quality information:</p>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>quality</code></td>
+                <td>integer or null</td>
+                <td>✅ Yes</td>
+                <td>Video height in pixels (360, 480, 720, 1080, 1440, 2160, 4320, etc.) or <code>null</code> for adaptive/unknown quality. Used for quality selector UI.</td>
+            </tr>
+            <tr>
+                <td><code>url</code></td>
+                <td>string (URL)</td>
+                <td>✅ Yes</td>
+                <td>Direct playback URL. Must be HTTP/HTTPS accessible. Supports MP4, WebM, HLS (.m3u8), DASH (.mpd), etc.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="info-box">
+        <strong>Quality Guidelines:</strong><br>
+        • Use specific pixel heights when known: 720, 1080, 1440, 2160, etc.<br>
+        • Use <code>null</code> for adaptive streaming (HLS/DASH) where quality varies<br>
+        • Order formats from lowest to highest quality for better UX<br>
+        • Include multiple qualities when available to give users choice
+    </div>
+
+    <h3>Complete Example</h3>
+    <div class="code-example">
+        <div class="code-header">Request</div>
+        <pre><code>GET /videos/mv001</code></pre>
+    </div>
+
+    <div class="code-example">
+        <div class="code-header">Response (200 OK)</div>
+        <pre><code>{
+  "id": "mv001",
+  "title": "Sunset Live Performance",
+  "description": "Recorded live at the Indie Music Festival 2025. Features original songs from the album 'Midnight Dreams' including the hit single 'Sunset Boulevard'. Performed by indie rock band The Wanderers.",
+  "thumbnail": "https://example.com/thumbs/mv001.jpg",
+  "source_url": "https://youtube.com/watch?v=abc123&ref=xtor-feed",
+  "duration": 245,
+  "published_at": "2025-01-15T20:30:00Z",
+  "formats": [
+    { "quality": 360, "url": "https://example.com/videos/mv001-360p.mp4" },
+    { "quality": 480, "url": "https://example.com/videos/mv001-480p.mp4" },
+    { "quality": 720, "url": "https://example.com/videos/mv001-720p.mp4" },
+    { "quality": 1080, "url": "https://example.com/videos/mv001-1080p.mp4" }
+  ]
+}</code></pre>
+    </div>
+
+    <h3>Live Stream Example</h3>
+    <div class="code-example">
+        <div class="code-header">Live Stream Response</div>
+        <pre><code>{
+  "id": "live001",
+  "title": "Festival Live Stream",
+  "description": "24/7 live music festival coverage featuring emerging artists.",
+  "thumbnail": "https://example.com/thumbs/live001.jpg",
+  "duration": null,
+  "formats": [
+    { "quality": null, "url": "https://example.com/streams/live001.m3u8" }
+  ]
+}</code></pre>
+    </div>
+
+    <h3>Minimal Example (Required Fields Only)</h3>
+    <div class="code-example">
+        <div class="code-header">Minimal Valid Response</div>
+        <pre><code>{
+  "id": "video123",
+  "title": "Sample Video",
+  "thumbnail": "https://example.com/thumb.jpg",
+  "formats": [
+    { "quality": 720, "url": "https://example.com/video.mp4" }
+  ]
+}</code></pre>
+    </div>
+
+    <h3>Error Responses</h3>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Status Code</th>
+                <th>Scenario</th>
+                <th>Response</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>404 Not Found</code></td>
+                <td>Video ID doesn't exist</td>
+                <td><code>{"error": "Video not found"}</code></td>
+            </tr>
+            <tr>
+                <td><code>400 Bad Request</code></td>
+                <td>Invalid ID format</td>
+                <td><code>{"error": "Invalid video ID"}</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Implementation Notes</h3>
+    <ul>
+        <li><strong>Lazy Loading:</strong> This endpoint is called when users click play if formats were omitted from <code>/videos</code> list response</li>
+        <li><strong>Caching:</strong> Consider aggressive caching (e.g., 5-15 minutes) as video metadata rarely changes</li>
+        <li><strong>Performance:</strong> Response should be fast (&lt;200ms) since it blocks video playback</li>
+        <li><strong>Empty Formats:</strong> An empty formats array is invalid - return 404 or 500 if video has no playable formats</li>
+        <li><strong>URL Expiry:</strong> If using signed URLs, ensure they're valid for at least the video's duration + buffer time</li>
+    </ul>
+
+    <div class="success-box">
+        <strong>Use Cases:</strong><br>
+        • <strong>Lazy loading:</strong> When <code>/videos</code> omits formats for performance<br>
+        • <strong>Full metadata:</strong> When user clicks video for details before playing<br>
+        • <strong>Deep linking:</strong> When user shares/bookmarks specific videos<br>
+        • <strong>Quality selection:</strong> To show all available quality options in player
+    </div>
+</div>

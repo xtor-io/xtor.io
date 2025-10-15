@@ -1,0 +1,38 @@
+# Jekyll configuration for XTOR documentation site
+
+title: XTOR
+description: A minimal, open format for distributed video feeds
+baseurl: "" # Leave empty if deploying to username.github.io/repo-name or set to "/repo-name"
+url: "" # Your site URL, e.g., https://xtor.io
+
+# XTOR specific info
+xtor:
+  version: "1.0"
+  github_org: "https://github.com/xtor-io"
+  release_date: "October 2025"
+
+# Build settings
+markdown: kramdown
+permalink: pretty
+
+# Exclude from processing
+exclude:
+  - README.md
+  - SETUP.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+
+# Collections (if you want to add blog posts or tutorials later)
+collections:
+  examples:
+    output: true
+    permalink: /examples/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"

@@ -1,0 +1,19 @@
+<nav class="navbar">
+    <div class="container">
+        <div class="nav-brand">
+            <span class="logo">{{ site.title }}</span>
+            <span class="version">v{{ site.xtor.version }}</span>
+        </div>
+        <ul class="nav-links">
+            {% for item in site.data.navigation.main %}
+            <li>
+                <a href="{% if item.external %}{{ item.url }}{% else %}{{ item.url | relative_url }}{% endif %}"
+                   {% if item.external %}target="_blank" rel="noopener"{% endif %}
+                   {% if page.url == item.url %}class="active"{% endif %}>
+                    {{ item.title }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</nav>

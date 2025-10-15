@@ -1,0 +1,291 @@
+<div class="spec-section" id="manifest">
+    <h2>1. Manifest Endpoint</h2>
+    <p><code>GET /manifest</code></p>
+    <p>Returns metadata describing the feed's capabilities, available filters, and sorting options. This is the first endpoint clients should call to discover what features the feed supports.</p>
+
+    <div class="info-box">
+        <strong>Discovery Flow:</strong> Clients should fetch the manifest first to understand available filters, sort options, and search capability before querying the <code>/videos</code> endpoint.
+    </div>
+
+    <h3>Response Format</h3>
+    <div class="code-example">
+        <div class="code-header">Response Structure</div>
+        <pre><code>{
+  "name": string,              // Required: Feed name
+  "description": string,       // Optional: Feed description
+  "xtor_version": string,      // Required: XTOR spec version (e.g., "1.0")
+  "logo": string,              // Optional: Square logo URL (64x64px recommended)
+  "active": boolean,           // Required: Is feed currently active?
+  "search": boolean,           // Optional: Does feed support search?
+  "filters": [                 // Optional: Available filters
+    {
+      "id": string,            // Filter identifier (e.g., "category")
+      "label": string,         // Human-readable name (e.g., "Category")
+      "options": [             // Available filter values
+        {
+          "id": string,        // Option identifier (e.g., "rock")
+          "label": string      // Human-readable name (e.g., "Rock")
+        }
+      ]
+    }
+  ],
+  "sort": {                    // Optional: Sorting options
+    "default": string,         // Default sort option ID
+    "options": [
+      {
+        "id": string,          // Sort identifier (e.g., "recent")
+        "label": string        // Human-readable name (e.g., "Most Recent")
+      }
+    ]
+  }
+}</code></pre>
+    </div>
+
+    <h3>Required Fields</h3>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>name</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Display name of the feed. Shown in client applications and feed lists.</td>
+            </tr>
+            <tr>
+                <td><code>xtor_version</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>XTOR specification version. Must be <code>"1.0"</code> for this version.</td>
+            </tr>
+            <tr>
+                <td><code>active</code></td>
+                <td>boolean</td>
+                <td>✅ Yes</td>
+                <td>Whether the feed is currently operational. Set to <code>false</code> during maintenance or if feed is being deprecated.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Optional Fields</h3>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>description</code></td>
+                <td>string</td>
+                <td>❌ No</td>
+                <td>Brief description of feed content (1-2 sentences recommended).</td>
+            </tr>
+            <tr>
+                <td><code>logo</code></td>
+                <td>string (URL)</td>
+                <td>❌ No</td>
+                <td>Square logo image URL. Recommended size: 64x64px or larger. Used in feed directories and client UI.</td>
+            </tr>
+            <tr>
+                <td><code>search</code></td>
+                <td>boolean</td>
+                <td>❌ No</td>
+                <td>Whether feed supports text search via <code>search</code> query parameter. Defaults to <code>false</code> if omitted.</td>
+            </tr>
+            <tr>
+                <td><code>filters</code></td>
+                <td>array</td>
+                <td>❌ No</td>
+                <td>Array of available filter definitions. See "Filters Structure" below.</td>
+            </tr>
+            <tr>
+                <td><code>sort</code></td>
+                <td>object</td>
+                <td>❌ No</td>
+                <td>Sorting options configuration. See "Sort Structure" below.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Filters Structure</h3>
+    <p>The <code>filters</code> array defines available filtering options. Each filter object has:</p>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>id</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Filter identifier used in <code>filter</code> query parameter (e.g., "genre", "year").</td>
+            </tr>
+            <tr>
+                <td><code>label</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Human-readable filter name shown in UI (e.g., "Genre", "Year").</td>
+            </tr>
+            <tr>
+                <td><code>options</code></td>
+                <td>array</td>
+                <td>✅ Yes</td>
+                <td>Array of available filter values. Must contain at least one option.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>Each option in the <code>options</code> array has:</p>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>id</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Option value used in filter query (e.g., "rock", "2024").</td>
+            </tr>
+            <tr>
+                <td><code>label</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Human-readable option name (e.g., "Rock", "2024").</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Sort Structure</h3>
+    <p>The <code>sort</code> object defines available sorting methods:</p>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>default</code></td>
+                <td>string</td>
+                <td>❌ No</td>
+                <td>ID of the default sort option. If omitted, first option is used as default.</td>
+            </tr>
+            <tr>
+                <td><code>options</code></td>
+                <td>array</td>
+                <td>✅ Yes</td>
+                <td>Array of available sort methods. Must contain at least one option.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>Each option in the <code>options</code> array has:</p>
+    <table class="spec-table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>id</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Sort method identifier used in <code>sort</code> query parameter (e.g., "recent", "popular").</td>
+            </tr>
+            <tr>
+                <td><code>label</code></td>
+                <td>string</td>
+                <td>✅ Yes</td>
+                <td>Human-readable sort method name (e.g., "Most Recent", "Most Popular").</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Complete Example</h3>
+    <div class="code-example">
+        <div class="code-header">Request</div>
+        <pre><code>GET /manifest</code></pre>
+    </div>
+
+    <div class="code-example">
+        <div class="code-header">Response (200 OK)</div>
+        <pre><code>{
+  "name": "Indie Music Videos",
+  "description": "Independent artist music videos and live performances",
+  "xtor_version": "1.0",
+  "logo": "https://example.com/logo-64x64.png",
+  "active": true,
+  "search": true,
+  "filters": [
+    {
+      "id": "genre",
+      "label": "Genre",
+      "options": [
+        { "id": "rock", "label": "Rock" },
+        { "id": "electronic", "label": "Electronic" },
+        { "id": "jazz", "label": "Jazz" }
+      ]
+    },
+    {
+      "id": "year",
+      "label": "Year",
+      "options": [
+        { "id": "2025", "label": "2025" },
+        { "id": "2024", "label": "2024" },
+        { "id": "2023", "label": "2023" }
+      ]
+    }
+  ],
+  "sort": {
+    "default": "recent",
+    "options": [
+      { "id": "recent", "label": "Most Recent" },
+      { "id": "popular", "label": "Most Popular" },
+      { "id": "alphabetical", "label": "A-Z" }
+    ]
+  }
+}</code></pre>
+    </div>
+
+    <h3>Minimal Example (Required Fields Only)</h3>
+    <div class="code-example">
+        <div class="code-header">Minimal Valid Manifest</div>
+        <pre><code>{
+  "name": "Simple Video Feed",
+  "xtor_version": "1.0",
+  "active": true
+}</code></pre>
+    </div>
+
+    <div class="success-box">
+        <strong>Best Practice:</strong> Even if your feed doesn't support search or filters initially, include empty arrays or <code>false</code> values to explicitly communicate capabilities to clients.
+    </div>
+</div>

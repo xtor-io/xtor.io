@@ -1,0 +1,17 @@
+# Main navigation menu items
+main:
+  - title: "Home"
+    url: "/"
+
+  - title: "Specification"
+    url: "/specification/"
+
+  - title: "Clients"
+    url: "/clients/"
+
+  - title: "API Tester"
+    url: "/testing/"
+
+  - title: "GitHub"
+    url: "https://github.com/xtor-io"
+    external: true
