@@ -140,6 +140,11 @@ description: A minimal, open format for distributed video feeds. Like RSS for vi
 
 app = Flask(__name__)
 
+@app.after_request
+def cors(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
 @app.route('/manifest')
 def manifest():
     return jsonify({

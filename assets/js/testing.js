@@ -215,7 +215,7 @@ function updateRequestUrl() {
 
         if (page) params.append('page', page);
         if (limit) params.append('limit', limit);
-        if (search) params.append('query', search);
+        if (search) params.append('search', search);
         if (filters) {
             filters.split(',').forEach(filter => {
                 const trimmed = filter.trim();
@@ -228,7 +228,7 @@ function updateRequestUrl() {
         if (queryString) url += '?' + queryString;
     } else if (currentEndpoint === 'detail') {
         const videoId = document.getElementById('videoId').value.trim();
-        url += '/videos/' + (videoId || ':id');
+        url += '/videos/' + (videoId ? encodeURIComponent(videoId) : ':id');
     }
 
     document.getElementById('requestUrl').textContent = url;
@@ -265,7 +265,13 @@ async function testEndpoint() {
 
     try {
         const response = await fetch(requestUrl);
-        const data = await response.json();
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error(`HTTP ${response.status}: response is not JSON. Every XTOR response, including errors, must be JSON`);
+        }
         lastResponse = data;
 
         // Store response data for later use
@@ -290,6 +296,11 @@ async function testEndpoint() {
 
         // Validate response
         validateResponse(data, currentEndpoint, validationChecklist);
+
+        // If a search was sent, check that `search` actually narrows the results
+        if (currentEndpoint === 'videos' && response.ok) {
+            await validateSearchNarrows(requestUrl, data, validationChecklist);
+        }
 
     } catch (error) {
         statusBadge.textContent = 'Error';
@@ -406,6 +417,15 @@ function validateResponse(data, endpoint, container) {
         }
     }
 
+    if (data && typeof data === 'object' && 'error' in data && !('videos' in data) && !('name' in data) && !('id' in data)) {
+        validations.length = 0;
+        validations.push(typeof data.error === 'string'
+            ? { pass: true, message: `Error body has an "error" message: ${data.error}` }
+            : { pass: false, message: 'Error body should be {"error": "message"}' });
+    } else {
+        validations.push(...ruleChecks(data, endpoint));
+    }
+
     // Display validations
     container.innerHTML = validations.map(v => {
         const className = v.pass ? 'pass' : (v.warning ? 'warning' : 'fail');
@@ -413,10 +433,126 @@ function validateResponse(data, endpoint, container) {
         return `
             <div class="validation-item ${className}">
                 <span class="validation-icon">${icon}</span>
-                <span>${v.message}</span>
+                <span>${escapeHtml(v.message)}</span>
             </div>
         `;
     }).join('');
+}
+
+// Spec rules beyond field types. Checks every video, not only the first.
+function ruleChecks(data, endpoint) {
+    const out = [];
+    const isAbsUrl = u => typeof u === 'string' && /^https?:\/\/[^/]/i.test(u);
+    const isTimestamp = t => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(t);
+    const problems = [];
+
+    const checkVideo = (v, where, isDetail) => {
+        if (!v || typeof v !== 'object') { problems.push(`${where} is not an object`); return; }
+        if (typeof v.id !== 'string' || v.id === '') problems.push(`${where}.id must be a non-empty string`);
+        else if (!/^[A-Za-z0-9._-]+$/.test(v.id)) out.push({ pass: false, warning: true, message: `${where}.id "${v.id}" contains characters outside A-Z a-z 0-9 - _ . (allowed, but not recommended)` });
+        if (typeof v.title !== 'string' || v.title === '') problems.push(`${where}.title must be a non-empty string`);
+        if (!isAbsUrl(v.thumbnail)) problems.push(`${where}.thumbnail must be an absolute http(s) URL`);
+        if ('duration' in v && v.duration !== null && !Number.isInteger(v.duration)) problems.push(`${where}.duration must be whole seconds or null (got ${JSON.stringify(v.duration)})`);
+        if ('published_at' in v && !isTimestamp(v.published_at)) problems.push(`${where}.published_at should look like 2025-01-15T20:30:00Z (got ${JSON.stringify(v.published_at)})`);
+        if ('source_url' in v && !isAbsUrl(v.source_url)) problems.push(`${where}.source_url must be an absolute http(s) URL`);
+        if ('formats' in v) {
+            if (!Array.isArray(v.formats)) { problems.push(`${where}.formats must be an array`); return; }
+            if (v.formats.length === 0) problems.push(isDetail ? 'formats is empty: return 404 when nothing is playable' : `${where}.formats is empty: omit it from the list instead`);
+            v.formats.forEach((f, i) => {
+                const fw = `${where}.formats[${i}]`;
+                if (!isAbsUrl(f?.url)) problems.push(`${fw}.url must be an absolute http(s) URL`);
+                else if (/\/embed\//i.test(f.url)) problems.push(`${fw}.url looks like an embed page, not a direct stream`);
+                if (f && 'quality' in f && f.quality !== null && !Number.isInteger(f.quality)) problems.push(`${fw}.quality must be an integer or null`);
+            });
+        } else if (isDetail) {
+            problems.push('formats is missing: the detail endpoint must return at least one format');
+        }
+    };
+
+    if (endpoint === 'manifest') {
+        if (typeof data.xtor_version === 'string' && !data.xtor_version.startsWith('1.')) problems.push(`xtor_version should be "1.0" (got "${data.xtor_version}")`);
+        if ('logo' in data && !isAbsUrl(data.logo)) problems.push('logo must be an absolute http(s) URL');
+        if ('logo' in data && /\.svg(\?|$)/i.test(data.logo || '')) out.push({ pass: false, warning: true, message: 'logo is SVG; PNG or JPEG works on more players' });
+        (Array.isArray(data.filters) ? data.filters : []).forEach((f, i) => {
+            if (typeof f?.id === 'string' && f.id.includes(':')) problems.push(`filters[${i}].id must not contain ":"`);
+            if (!Array.isArray(f?.options) || f.options.length === 0) problems.push(`filters[${i}].options must have at least one option`);
+        });
+        if (data.sort) {
+            const opts = Array.isArray(data.sort.options) ? data.sort.options : [];
+            if (opts.length === 0) problems.push('sort.options must have at least one option (or leave out sort)');
+            if (data.sort.default && !opts.some(o => o.id === data.sort.default)) problems.push(`sort.default "${data.sort.default}" is not one of sort.options`);
+        }
+    } else if (endpoint === 'videos') {
+        const videos = Array.isArray(data.videos) ? data.videos : [];
+        videos.forEach((v, i) => checkVideo(v, `videos[${i}]`, false));
+        const ids = videos.map(v => v?.id);
+        if (new Set(ids).size !== ids.length) problems.push('videos contains duplicate ids');
+        if (data.pagination) {
+            if (!Number.isInteger(data.pagination.page)) problems.push('pagination.page must be an integer');
+            if (videos.length === 0 && data.pagination.has_next === true) problems.push('has_next is true but this page is empty');
+        }
+        if (videos.length > 0) out.push({ pass: true, message: `Checked all ${videos.length} videos on this page` });
+    } else if (endpoint === 'detail') {
+        checkVideo(data, 'video', true);
+        const requested = document.getElementById('videoId')?.value.trim();
+        if (requested && data.id !== requested) problems.push(`id "${data.id}" does not match the requested id "${requested}"`);
+    }
+
+    problems.forEach(message => out.push({ pass: false, message }));
+    if (problems.length === 0) out.push({ pass: true, message: 'No spec rule violations found' });
+    return out;
+}
+
+// Compares the searched response against the same request without `search`.
+// A feed that ignores `search` returns identical results for both.
+async function validateSearchNarrows(requestUrl, searchedData, container) {
+    let url;
+    try {
+        url = new URL(requestUrl);
+    } catch (e) {
+        return;
+    }
+    const term = url.searchParams.get('search');
+    if (!term) return;
+
+    let result;
+    if (manifestData && manifestData.search === false) {
+        result = { pass: true, message: `search not tested: manifest declares search: false` };
+    } else {
+        url.searchParams.delete('search');
+        try {
+            const baseline = await (await fetch(url.toString())).json();
+            const ids = d => (Array.isArray(d?.videos) ? d.videos.map(v => v.id) : []);
+            const searchedIds = ids(searchedData);
+            const baselineIds = ids(baseline);
+            const same = searchedIds.length === baselineIds.length &&
+                searchedIds.every((id, i) => id === baselineIds[i]) &&
+                searchedData?.pagination?.has_next === baseline?.pagination?.has_next;
+
+            if (!same) {
+                result = { pass: true, message: `search="${term}" narrows results (${searchedIds.length} vs ${baselineIds.length} unfiltered on this page)` };
+            } else if (manifestData && manifestData.search === true) {
+                result = { pass: false, message: `search="${term}" returned the same results as no search, but manifest declares search: true. Is the feed reading the old "query" name instead of "search"?` };
+            } else {
+                result = { pass: false, warning: true, message: `search="${term}" returned the same results as no search. Either every video matches, or the feed ignores "search" (load the manifest first for a stricter check)` };
+            }
+        } catch (error) {
+            result = { pass: false, warning: true, message: `Could not fetch unfiltered baseline to verify search: ${error.message}` };
+        }
+    }
+
+    const className = result.pass ? 'pass' : (result.warning ? 'warning' : 'fail');
+    const icon = result.pass ? '✓' : (result.warning ? '⚠' : '✗');
+    container.insertAdjacentHTML('beforeend', `
+        <div class="validation-item ${className}">
+            <span class="validation-icon">${icon}</span>
+            <span>${escapeHtml(result.message)}</span>
+        </div>
+    `);
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function checkField(obj, field, type, required, path = '') {

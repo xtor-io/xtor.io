@@ -59,7 +59,7 @@ subtitle: Test and validate your XTOR feed implementation
             </div>
 
             <div class="form-group">
-                <label for="search">Search Query</label>
+                <label for="search">Search</label>
                 <input type="text" id="search" placeholder="concert">
             </div>
 

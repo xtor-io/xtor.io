@@ -39,6 +39,12 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
+# Let web and TV players call the feed from any origin
+@app.after_request
+def cors(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
 # 1. Manifest - Describes your feed
 @app.route('/manifest')
 def manifest():
@@ -75,7 +81,7 @@ def video_detail(video_id):
 app.run()
 ```
 
-**That's it!** Your feed is ready at `http://localhost:5000`
+**That's it!** Your feed's base URL is `http://localhost:5000`. Check it with the [API Tester](https://xtor.io/testing/) and the [Feed Checklist](https://xtor.io/specification/#checklist).
 
 ---
 
@@ -162,7 +168,10 @@ Returns videos with optional filtering, search, and sorting.
 
 ```bash
 GET /videos?filter=genre:rock&page=1&limit=20&sort=recent
+GET /videos?search=concert&sort=recent
 ```
+
+> All parameters are optional and invalid values fall back to defaults. `search` only works when the manifest has `search: true`. Repeat `filter=id:option` once per selected filter; different filters combine with AND.
 
 ```json
 {
@@ -263,7 +272,6 @@ This repository contains the **official XTOR documentation website** built with 
 │   ├── navigation.yml       # Navigation menu
 │   └── clients.yml          # Client apps database
 ├── _includes/
-│   ├── specification/       # Endpoint documentation
 │   ├── navigation.html      # Nav component
 │   └── footer.html          # Footer component
 ├── _layouts/
@@ -350,6 +358,9 @@ We welcome contributions! Here's how you can help:
 | Version | Status | Release Date | Documentation |
 |---------|--------|--------------|---------------|
 | **1.0** | ✅ Current | October 2025 | [Spec](https://xtor.io/specification/) |
+
+**v1.0 clarifications** (non-breaking):
+- *2026-11-13:* Spec rewritten for clarity, based on how existing players and feeds behave (search parameter is `search`, filter rules, one shared Video object, direct-stream formats, JSON errors, Client Guidelines and a Feed Checklist). Non-breaking; `xtor_version` stays `"1.0"`. See the [changelog](https://xtor.io/specification/#versioning).
 
 ---
 
